@@ -21,6 +21,15 @@
 //semplicemente i dati relativi a quella chiamata verranno settati a null e  la frase relativa non viene stampata. 
 //Testa la funzione con la query “vienna” (non trova il meteo).
 
+
+//🎯 Bonus 2 - Chiamate fallite
+//Attualmente, se una delle chiamate fallisce, **Promise.all()** rigetta l'intera operazione.
+
+//Modifica `getDashboardData()` per usare **Promise.allSettled()**, in modo che:
+//Se una chiamata fallisce, i dati relativi a quella chiamata verranno settati a null.
+//Stampa in console un messaggio di errore per ogni richiesta fallita.
+//Testa la funzione con un link fittizio per il meteo (es. https://www.meteofittizio.it).
+
 async function fetchJSON(url) {
     const resp = await fetch(url);
     const obj = await resp.json();
@@ -31,23 +40,51 @@ async function fetchJSON(url) {
 const getDashboardData = async (query) => {
     console.log(`Caricamento della dashboard di ${query}...`);
 
-    try{
+    try {
 
         const promiseDestinations = fetchJSON(`http://localhost:3333/destinations?search=${query}`);
         const promiseWeathers = fetchJSON(`http://localhost:3333/weathers?search=${query}`);
         const promiseAirports = fetchJSON(`http://localhost:3333/airports?search=${query}`);
-    
+
         const promises = [promiseDestinations, promiseWeathers, promiseAirports];
-        const [destinations, weathers, airports] = await Promise.all(promises)
-                
-        return {
-            name: destinations.length === 0 ? null : destinations[0].name,
-            country: destinations.length === 0 ? null : destinations[0].country,
-            temperature: weathers.length === 0 ? null : weathers[0].temperature,
-            weather: weathers.length === 0 ? null : weathers[0].weather_description,
-            airport: airports.length === 0 ? null : airports[0].name
+        const [destinationsResult, weathersResult, airportsResult] = await Promise.allSettled(promises)
+        console.log([destinationsResult, weathersResult, airportsResult]);
+        
+        
+
+        let data = {};
+
+        if (destinationsResult.status === "rejected") {
+            console.error(`Errore nei dati destination`, destinationsResult.reason);
+            data.city = null
+            data.country = null
+        } else {
+            const destinations = destinationsResult.value[0]
+            data.city = destinations ? destinations.name : null
+            data.country = destinations ? destinations.country : null
         }
-    } catch(error){
+
+         if (weathersResult.status === "rejected") {
+            console.error(`Errore nei dati weathers`, weathersResult.reason);
+            data.temperature = null
+            data.weather = null
+        } else {
+            const weathers = weathersResult.value[0]
+            data.temperature = weathers ? weathers.temperature : null  
+            data.weather = weathers ? weathers.weather_description : null
+        }
+
+         if (airportsResult.status === "rejected") {
+            console.error(`Errore nei dati airports`, airportsResult.reason);
+            data.airport = null          
+        } else {
+            const airports = airportsResult.value[0]
+            data.airport = airports ? airports.name : null
+        }
+
+        return data
+      
+    } catch (error) {
         throw new Error(`Errore nel recupero dei dati: ${error.message}`)
     }
 
@@ -71,21 +108,21 @@ const getDashboardData = async (query) => {
 
 
     try {
-        const data = await getDashboardData("vienna")
+        const data = await getDashboardData("london")
         console.log(data);
         let frase = "";
-        if(data.name !== null && data.country !== null) {
-            frase += `${data.name} is in ${data.country}.\n`
+        if (data.city !== null && data.country !== null) {
+            frase += `${data.city} is in ${data.country}.\n`
         }
-         if(data.temperature !== null && data.weather !== null) {
+        if (data.temperature !== null && data.weather !== null) {
             frase += `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n`
         }
-         if(data.airport !== null) {
+        if (data.airport !== null) {
             frase += `The main airport is ${data.airport}.\n`
         }
-        
+
         console.log(frase);
-        
+
     } catch (error) {
         console.error(error);
 
