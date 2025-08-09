@@ -15,14 +15,17 @@
 //Stampare i dati in console in un messaggio ben formattato.
 //Testa la funzione con la query "london"
 
+
+//🎯 Bonus 1 - Risultato vuoto
+//Se l’array di ricerca è vuoto, invece di far fallire l'intera funzione, 
+//semplicemente i dati relativi a quella chiamata verranno settati a null e  la frase relativa non viene stampata. 
+//Testa la funzione con la query “vienna” (non trova il meteo).
+
 async function fetchJSON(url) {
     const resp = await fetch(url);
     const obj = await resp.json();
     return obj
 };
-
-
-
 
 
 const getDashboardData = async (query) => {
@@ -36,16 +39,16 @@ const getDashboardData = async (query) => {
     
         const promises = [promiseDestinations, promiseWeathers, promiseAirports];
         const [destinations, weathers, airports] = await Promise.all(promises)
-    
+                
         return {
-            name: destinations[0].name,
-            country: destinations[0].country,
-            temperature: weathers[0].temperature,
-            weather: weathers[0].weather_description,
-            airport: airports[0].name
+            name: destinations.length === 0 ? null : destinations[0].name,
+            country: destinations.length === 0 ? null : destinations[0].country,
+            temperature: weathers.length === 0 ? null : weathers[0].temperature,
+            weather: weathers.length === 0 ? null : weathers[0].weather_description,
+            airport: airports.length === 0 ? null : airports[0].name
         }
     } catch(error){
-        throw new Error(`Non sono riuscito a recuperare i dati`)
+        throw new Error(`Errore nel recupero dei dati: ${error.message}`)
     }
 
 
@@ -68,15 +71,23 @@ const getDashboardData = async (query) => {
 
 
     try {
-        const data = await getDashboardData("london")
+        const data = await getDashboardData("vienna")
         console.log(data);
-        console.log(
-            `${data.name} is in ${data.country}.\n` +
-            `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n` +
-            `The main airport is ${data.airport}.\n`
-        );
+        let frase = "";
+        if(data.name !== null && data.country !== null) {
+            frase += `${data.name} is in ${data.country}.\n`
+        }
+         if(data.temperature !== null && data.weather !== null) {
+            frase += `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n`
+        }
+         if(data.airport !== null) {
+            frase += `The main airport is ${data.airport}.\n`
+        }
+        
+        console.log(frase);
+        
     } catch (error) {
-        console.error( error.message);
+        console.error(error);
 
     }
 })()
